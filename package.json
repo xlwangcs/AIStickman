@@ -1,0 +1,25 @@
+{
+  "name": "aistickman",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI-developed 2D physics stickman duel game (Supreme Duelist inspired)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"docs/**/*.md\" \"*.{json,md,html}\""
+  },
+  "dependencies": {
+    "planck": "^1.4.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^3.2.4"
+  }
+}

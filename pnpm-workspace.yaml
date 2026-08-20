@@ -1,0 +1,6 @@
+# esbuild 无需 postinstall（pnpm 下由 @esbuild/win32-x64 等 optional 依赖直接提供二进制）
+allowBuilds:
+  esbuild: false
+
+# 运行脚本前不做依赖自检（避免非 TTY 环境下触发交互式重装）
+verifyDepsBeforeRun: false
