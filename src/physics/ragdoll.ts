@@ -25,6 +25,15 @@ export interface RagdollOptions {
   facing?: 1 | -1;
 }
 
+/** 身体部位（伤害判定用） */
+export type BodyPart = 'head' | 'torso' | 'arm' | 'wheel' | 'weapon';
+
+/** 挂在每个刚体 userData 上的标签，contacts.ts 靠它识别"谁的什么部位" */
+export interface BodyTag {
+  player: number;
+  part: BodyPart;
+}
+
 export class Ragdoll {
   readonly playerIndex: number;
   readonly wheel: Body;
@@ -45,6 +54,8 @@ export class Ragdoll {
   private prevJump = false;
   /** 累计移动相位，渲染层画摆腿动画用 */
   walkPhase = 0;
+  /** 死亡后成为纯布娃娃：所有马达永久失效 */
+  dead = false;
 
   constructor(
     readonly world: World,
@@ -153,6 +164,31 @@ export class Ragdoll {
     )!;
 
     world.createJoint(new WeldJoint({}, this.arm, this.spear, new Vec2(handX, shoulderY)));
+
+    // —— 部位标签（命中判定识别用）——
+    const tag = (part: BodyPart): BodyTag => ({ player: opts.playerIndex, part });
+    this.head.setUserData(tag('head'));
+    this.torso.setUserData(tag('torso'));
+    this.arm.setUserData(tag('arm'));
+    this.wheel.setUserData(tag('wheel'));
+    this.spear.setUserData(tag('weapon'));
+  }
+
+  /** 死亡：永久关闭所有马达，变成纯布娃娃 */
+  kill(): void {
+    if (this.dead) return;
+    this.dead = true;
+    this.wheelJoint.setMotorSpeed(0);
+    this.wheelJoint.setMaxMotorTorque(0);
+    this.shoulderJoint.setMotorSpeed(0);
+    this.shoulderJoint.setMaxMotorTorque(0);
+  }
+
+  /** 从物理世界移除全部刚体（回合重置用；关节随刚体自动销毁） */
+  destroy(): void {
+    for (const body of [this.spear, this.arm, this.head, this.torso, this.wheel]) {
+      this.world.destroyBody(body);
+    }
   }
 
   /** 轮足是否接触地面（法线朝上的有效接触） */
@@ -170,11 +206,21 @@ export class Ragdoll {
 
   /** 每个物理步调用一次 */
   update(intent: PlayerIntent, dt: number): void {
+    if (this.dead) {
+      this.clampVelocities();
+      return;
+    }
     const t = tuning;
     this.jumpCooldownMs = Math.max(0, this.jumpCooldownMs - dt * 1000);
 
     const stunned = this.balance.stunned;
     this.balance.update(this.torso, dt);
+
+    // 轮足马达反作用力矩补偿：推挤障碍物/对手时马达持续输出大扭矩，
+    // 其反作用会把躯干压弯（顶墙时可达最大扭矩）。用上一步实测扭矩前馈抵消。
+    if (!stunned) {
+      this.torso.applyTorque(this.wheelJoint.getMotorTorque(1 / dt), true);
+    }
 
     const move = intent.move;
     const moveLen = Math.hypot(move.x, move.y);
@@ -220,7 +266,7 @@ export class Ragdoll {
 
     // 跌倒状态（躯干大幅倾斜）手臂卸力：否则武器会像撑脚架一样刚性撑住身体，
     // 让 PD 扶正力矩永远无法把人拉起来。
-    const fallen = Math.abs(wrapAngle(this.torso.getAngle())) > 0.5;
+    const fallen = Math.abs(wrapAngle(this.torso.getAngle())) > t.fallenAngle;
     if (!stunned) {
       const err = wrapAngle(this.aimAngle - this.arm.getAngle());
       const speed = Math.max(-t.armMaxSpeed, Math.min(t.armMaxSpeed, t.armTrackGain * err));

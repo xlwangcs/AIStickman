@@ -3,7 +3,9 @@
  * 只读游戏/物理状态。屏幕坐标 y 向下，世界坐标 y 向上，用负 scale 翻转。
  */
 import type { Ragdoll } from '../physics/ragdoll';
+import type { Game } from '../game/game';
 import { drawStickman, drawSpearDebug, type StickmanStyle } from './stickman-draw';
+import { drawHud } from './hud';
 
 const PLAYER_STYLES: StickmanStyle[] = [
   { color: '#e33e3e' },
@@ -17,7 +19,8 @@ export class Renderer {
   private camX = 0;
   private camY = 2;
   private ppm = 60; // pixels per meter
-  debugVectors = true;
+  private shakeMag = 0;
+  debugVectors = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
@@ -31,6 +34,19 @@ export class Renderer {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = Math.floor(this.canvas.clientWidth * dpr);
     this.canvas.height = Math.floor(this.canvas.clientHeight * dpr);
+  }
+
+  /** 完整对局渲染：场景 + 屏幕震动 + HUD */
+  renderGame(game: Game, fps: number): void {
+    this.shakeMag = game.shake;
+    this.render(
+      [game.players[0].ragdoll, game.players[1].ragdoll],
+      game.ground.y,
+      game.ground.halfWidth,
+      fps,
+    );
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    drawHud(this.ctx, game, this.canvas.width, this.canvas.height, dpr);
   }
 
   render(ragdolls: readonly Ragdoll[], groundY: number, groundHalfWidth: number, fps: number): void {
@@ -64,8 +80,18 @@ export class Renderer {
     ctx.fillStyle = '#1a1c22';
     ctx.fillRect(0, 0, w, h);
 
-    // —— 世界坐标系 ——
-    ctx.setTransform(this.ppm, 0, 0, -this.ppm, w / 2 - this.camX * this.ppm, h / 2 + this.camY * this.ppm);
+    // —— 世界坐标系（含屏幕震动偏移，仅视觉，不影响物理） ——
+    const shakePx = this.shakeMag * 10 * (window.devicePixelRatio || 1);
+    const sx = (Math.random() - 0.5) * shakePx;
+    const sy = (Math.random() - 0.5) * shakePx;
+    ctx.setTransform(
+      this.ppm,
+      0,
+      0,
+      -this.ppm,
+      w / 2 - this.camX * this.ppm + sx,
+      h / 2 + this.camY * this.ppm + sy,
+    );
 
     // 网格（轻微，提供速度感）
     ctx.strokeStyle = 'rgba(255,255,255,0.05)';
@@ -100,7 +126,8 @@ export class Renderer {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#cdd3e0';
     ctx.font = `${Math.round(12 * (window.devicePixelRatio || 1))}px monospace`;
-    ctx.fillText(`FPS ${fps}`, 12, 20);
-    ctx.fillText('P1: WASD 移动/瞄准, F 跳 | P2: 方向键, 右Ctrl 跳 | 甩摇杆挥矛!', 12, 40);
+    const dpr = window.devicePixelRatio || 1;
+    ctx.fillText(`FPS ${fps}`, 12 * dpr, h - 28 * dpr);
+    ctx.fillText('P1: WASD+F | P2: 方向键+右Ctrl | 甩摇杆挥矛!', 12 * dpr, h - 10 * dpr);
   }
 }

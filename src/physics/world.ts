@@ -18,8 +18,9 @@ export function createWorld(): World {
   return new World(new Vec2(0, tuning.gravityY));
 }
 
-export function stepWorld(world: World): void {
-  world.step(FIXED_DT, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
+/** dt 默认固定步长；慢动作时传入缩放后的更小步长（仍是确定性子步） */
+export function stepWorld(world: World, dt: number = FIXED_DT): void {
+  world.step(dt, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
 }
 
 export interface GroundSpec {

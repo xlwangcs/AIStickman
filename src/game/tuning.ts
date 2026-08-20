@@ -16,6 +16,8 @@ export const tuning = {
   balanceKd: 22,
   /** 受击失衡窗口（毫秒）：期间所有马达失效 */
   stunMs: 450,
+  /** 躯干倾斜超过此角度视为跌倒（手臂卸力，防武器撑地死锁） */
+  fallenAngle: 0.9,
 
   // —— 移动 ——
   /** 地面移动目标速度 */
@@ -45,9 +47,32 @@ export const tuning = {
   /** 刚体最大角速度 */
   maxAngularSpeed: 25,
 
+  // —— 战斗 ——
+  maxHp: 100,
+  /** 低于此相对速度的接触不造成伤害（推挤/轻碰） */
+  hitMinSpeed: 4,
+  /** 达到此相对速度时伤害拉满 */
+  hitRefSpeed: 13,
+  /** 同一攻击者对同一目标的判伤冷却（毫秒） */
+  hitCooldownMs: 250,
+  /** 每点伤害对应的击退冲量（N·s） */
+  knockbackPerDamage: 1.6,
+  /** 部位伤害系数 */
+  partMultHead: 1.5,
+  partMultTorso: 1.0,
+  partMultLimb: 0.6,
+  /** 击杀慢动作时长（毫秒）与时间缩放 */
+  slowmoMs: 700,
+  slowmoScale: 0.3,
+  /** 回合流程（秒） */
+  countdownSec: 3,
+  roundEndSec: 2.5,
+  scoreToWin: 5,
+
   // —— 长矛 ——
   spearLength: 1.5,
   spearDensity: 25,
+  spearBaseDamage: 34,
   /** 握持点距矛尾的比例（0=尾 0.5=中点） */
   spearGrip: 0.3,
 
